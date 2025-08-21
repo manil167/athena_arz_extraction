@@ -182,7 +182,7 @@ def download_scale_data_report(driver, start_date, end_date):
             By.XPATH, "//input[@type='BUTTON' and @value='OK']"
         ).click()
 
-        print("scale data Report download triggered. Waiting for file to be saved...")
+        print(f"scale data Report download triggered for date range {start_date} and {end_date}. Waiting for file to be saved...")
         time.sleep(10)  # Wait for file to download
         return True
 
@@ -272,7 +272,7 @@ def download_submission_date_report(driver, start_date, end_date):
             By.XPATH, "//input[@type='BUTTON' and @value='OK']"
         ).click()
 
-        print("Submission Date report download triggered.")
+        print("Submission Date report download triggered for date range {} to {}.".format(start_date, end_date))
         time.sleep(10)  # Wait for file to download
         return True
 
@@ -362,7 +362,7 @@ def download_denials_report(driver, start_date, end_date):
         run_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='SUBMIT' and @value='Run Report']")))
         run_button.click()
 
-        print("Denials Report download triggered.")
+        print("Denials Report download triggered for date range {} to {}.".format(start_date, end_date))
         time.sleep(10)  # Optional: wait for download to complete
         return True
 
@@ -371,10 +371,10 @@ def download_denials_report(driver, start_date, end_date):
         return False
 
 def logout_application(driver):
-
     """Logs out from the application handling all frame switches and confirmation."""
     wait = WebDriverWait(driver, 10)
     try:
+        # Step 1: Switch to GlobalNav frame and click Logout
         driver.switch_to.default_content()
         wait.until(EC.frame_to_be_available_and_switch_to_it((By.ID, "GlobalNav")))
 
@@ -383,14 +383,7 @@ def logout_application(driver):
         )
         logout_tab.click()
 
-        driver.switch_to.default_content()
-        wait.until(EC.frame_to_be_available_and_switch_to_it((By.ID, "simplemodal-data")))
-
-        logout_tab = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[@class='menucomponent' and contains(., 'Log out')]"))
-        )
-        logout_tab.click()
-
+        # Step 2: Switch to confirmation modal iframe and click Yes
         driver.switch_to.default_content()
         wait.until(EC.frame_to_be_available_and_switch_to_it((By.ID, "simplemodal-data")))
 
@@ -399,15 +392,16 @@ def logout_application(driver):
         )
         yes_button.click()
 
+        # Step 3: Return to main content
         driver.switch_to.default_content()
         print("Logout successful.")
         return True
 
     except Exception as e:
-        print(f"Error during logout: {e}")
-        driver.quit()
+        driver.switch_to.default_content()
+        print(f"Logout failed: {e}")
         return False
-
+    
 def upload_to_azure_blob(local_file_path, container_name="uipath", folder_name="", max_retries=3, retry_delay=5):
     """
     Upload a file to Azure Blob Storage with dynamic timeouts based on file size
@@ -597,31 +591,31 @@ def clean_and_save_reports(base_folder):
             except Exception as e:
                 print(f"Error saving file {output_filename}: {e}")
 
-# def wait_for_n_csv_files(download_path, n=5, check_interval=2):
-#     def is_file_fully_downloaded(filepath):
-#         if not os.path.isfile(filepath):
-#             return False
-#         size1 = os.path.getsize(filepath)
-#         time.sleep(1)
-#         size2 = os.path.getsize(filepath)
-#         return size1 == size2
+def wait_for_n_csv_files(download_path, n=8, check_interval=2):
+    def is_file_fully_downloaded(filepath):
+        if not os.path.isfile(filepath):
+            return False
+        size1 = os.path.getsize(filepath)
+        time.sleep(1)
+        size2 = os.path.getsize(filepath)
+        return size1 == size2
 
-#     print(f"Watching folder: {download_path} for {n} CSV files...")
+    print(f"Watching folder: {download_path} for {n} CSV files...")
 
-#     while True:
-#         csv_files = [
-#             f for f in os.listdir(download_path)
-#             if f.lower().endswith(".csv") and not f.endswith(".crdownload")
-#         ]
+    while True:
+        csv_files = [
+            f for f in os.listdir(download_path)
+            if f.lower().endswith(".csv") and not f.endswith(".crdownload")
+        ]
         
-#         full_paths = [os.path.join(download_path, f) for f in csv_files]
+        full_paths = [os.path.join(download_path, f) for f in csv_files]
 
-#         if len(csv_files) == n and all(is_file_fully_downloaded(fp) for fp in full_paths):
-#             print(f"✅ All {n} CSV files downloaded successfully!")
-#             return full_paths
-#         else:
-#             print(f"⏳ Found {len(csv_files)} CSV files so far. Waiting...")
-#             time.sleep(check_interval)
+        if len(csv_files) == n and all(is_file_fully_downloaded(fp) for fp in full_paths):
+            print(f"✅ All {n} CSV files downloaded successfully!")
+            return full_paths
+        else:
+            print(f"⏳ Found {len(csv_files)} CSV files so far. Waiting...")
+            time.sleep(check_interval)
 
 def keep_session_alive_all_tabs(driver, interval_minutes=10, stop_flag=None):
     """
@@ -656,33 +650,53 @@ def keep_session_alive(driver, interval_minutes=10):
     driver.execute_script(js_script)
     print(f"✅ Keep-alive script injected. Interval: {interval_minutes} minutes")
 
-def wait_for_n_csv_files(download_path, n=5, check_interval=2, stop_flag=None):
+# def wait_for_n_csv_files(download_path, n=5, check_interval=2, stop_flag=None):
+#     """
+#     Wait until exactly `n` fully downloaded CSV files exist in the folder.
+#     Returns a list of full file paths.
+#     """
+#     def is_file_fully_downloaded(filepath):
+#         if not os.path.isfile(filepath):
+#             return False
+#         size1 = os.path.getsize(filepath)
+#         time.sleep(1)
+#         size2 = os.path.getsize(filepath)
+#         return size1 == size2
+
+#     print(f"👀 Watching folder: {download_path} for {n} CSV files...")
+
+#     while True:
+#         csv_files = [
+#             f for f in os.listdir(download_path)
+#             if f.lower().endswith(".csv") and not f.endswith(".crdownload")
+#         ]
+#         full_paths = [os.path.join(download_path, f) for f in csv_files]
+
+#         if len(full_paths) == n and all(is_file_fully_downloaded(f) for f in full_paths):
+#             print(f"✅ All {n} CSV files downloaded successfully!")
+#             if stop_flag:
+#                 stop_flag.set()  # stop keep-alive thread
+#             return full_paths
+
+#         print(f"⏳ Found {len(full_paths)} CSV files so far. Waiting {check_interval}s...")
+#         time.sleep(check_interval)
+
+def close_all_tabs_with_logout(driver):
     """
-    Wait until exactly `n` fully downloaded CSV files exist in the folder.
-    Returns a list of full file paths.
+    Close all browser tabs one by one.
+    Perform logout on the last tab before closing it.
     """
-    def is_file_fully_downloaded(filepath):
-        if not os.path.isfile(filepath):
-            return False
-        size1 = os.path.getsize(filepath)
-        time.sleep(1)
-        size2 = os.path.getsize(filepath)
-        return size1 == size2
+    handles = driver.window_handles
 
-    print(f"👀 Watching folder: {download_path} for {n} CSV files...")
+    # Close all tabs except the last
+    for handle in handles[:-1]:
+        driver.switch_to.window(handle)
+        driver.close()
 
-    while True:
-        csv_files = [
-            f for f in os.listdir(download_path)
-            if f.lower().endswith(".csv") and not f.endswith(".crdownload")
-        ]
-        full_paths = [os.path.join(download_path, f) for f in csv_files]
-
-        if len(full_paths) == n and all(is_file_fully_downloaded(f) for f in full_paths):
-            print(f"✅ All {n} CSV files downloaded successfully!")
-            if stop_flag:
-                stop_flag.set()  # stop keep-alive thread
-            return full_paths
-
-        print(f"⏳ Found {len(full_paths)} CSV files so far. Waiting {check_interval}s...")
-        time.sleep(check_interval)
+    # Switch to last tab, logout, then close
+    driver.switch_to.window(handles[-1])
+    try:
+        logout_application(driver)  # perform logout
+    except Exception as e:
+        print(f"Logout failed: {e}")
+    driver.close()

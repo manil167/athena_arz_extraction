@@ -4,6 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import os, time, threading
 from datetime import datetime, timedelta
+from transformations import clean_save_upload_reports
 
 def main():
     # Load credentials
@@ -17,9 +18,11 @@ def main():
     yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%m%d%Y")
 
     # Create download folder
-    base_path = r"C:\Users\Bi-user 09\Desktop\Automation Projects\Athena ARZ\output"
+    base_path = r"C:\Users\Bi-user 09\Desktop\Automation Projects\Athena ARZ\downloads"
     download_path = os.path.join(base_path, today_str)
+    cleaned_reports_path  = os.path.join(base_path, today_str,'cleaned')
     os.makedirs(download_path, exist_ok=True)
+    os.makedirs(cleaned_reports_path, exist_ok=True)
 
     # Chrome options
     chrome_options = Options()
@@ -47,7 +50,7 @@ def main():
 
         # Open additional tabs (1 main + N new tabs)
         current_url = driver.current_url
-        num_tabs_needed = 6  # total new tabs
+        num_tabs_needed = 7  # total new tabs
         for _ in range(num_tabs_needed):
             driver.execute_script(f"window.open('{current_url}', '_blank');")
             time.sleep(1)
@@ -58,7 +61,8 @@ def main():
             (download_scale_data_report, {"start_date": "07012023", "end_date": "12312023"}),  # 2023 Q3-Q4
             (download_scale_data_report, {"start_date": "01012024", "end_date": "06302024"}),  # 2024 Q1-Q2
             (download_scale_data_report, {"start_date": "07012024", "end_date": "12312024"}),  # 2024 Q3-Q4
-            (download_scale_data_report, {"start_date": "01012025", "end_date": yesterday_str}),  # 2025 YTD
+            (download_scale_data_report, {"start_date": "01012025", "end_date": "06302025"}), #2025 Q1 Q2
+            (download_scale_data_report, {"start_date": "07012025", "end_date": yesterday_str}),  # 2025 Q3 - YTD
             (download_submission_date_report, {"start_date": "01012023", "end_date": yesterday_str}),
             (download_denials_report, {"start_date": "01012023", "end_date": yesterday_str}),
         ]
@@ -77,67 +81,20 @@ def main():
 
         # Logout
         try:
-            logout_application(driver)
+            close_all_tabs_with_logout(driver)
         except:
             pass
     finally:
         driver.quit()
-
-
-    # try:
-    #     # 1. Login
-    #     login_to_application(driver, USERNAME, PASSWORD)
-    #     time.sleep(5)
-
-    #     # Open additional tabs
-    #     current_url = driver.current_url
-    #     for _ in range(6):
-    #         driver.execute_script(f"window.open('{current_url}', '_blank');")
-    #         time.sleep(2)
-
-    #     # Switch through tabs & download reports
-    #     for i, handle in enumerate(driver.window_handles):
-    #         driver.switch_to.window(handle)
-    #         if i == 0:
-    #             download_scale_data_report(driver, start_date='01012023', end_date='06302023') #2023 Q1 & Q2
-    #         elif i == 1:
-    #             download_scale_data_report(driver, start_date='07012023', end_date='12312023') #2023 Q3 & Q4
-    #         elif i == 2:
-    #             download_scale_data_report(driver, start_date='01012024', end_date='06302024') #2024 Q1 & Q2
-    #         elif i == 3:
-    #             download_scale_data_report(driver, start_date='07012024', end_date='12312024') #2024 Q3 & Q4
-    #         elif i == 4:
-    #             download_scale_data_report(driver, start_date='01012025', end_date='06302024') #2025 Q1 & Q2
-    #         elif i == 4:
-    #             download_scale_data_report(driver, start_date='01012025', end_date=yesterday_str) #2025 Q1 & Q2
-    #         elif i == 5:
-    #             download_submission_date_report(driver, start_date='01012023', end_date=yesterday_str)
-    #         elif i == 6:
-    #             download_denials_report(driver, start_date='01012023', end_date=yesterday_str)
-    #         time.sleep(3)
-
-    #     # Keep session alive
-    #     stop_event = threading.Event()
-    #     threading.Thread(
-    #         target=keep_session_alive_all_tabs, args=(driver, 10, stop_event), daemon=True
-    #     ).start()
-
-    #     # Wait for downloads
-    #     downloaded_files = wait_for_n_csv_files(download_path, n=5, check_interval=2, stop_flag=stop_event)
-    #     print(downloaded_files)
-
-    #     # Logout
-    #     try:
-    #         logout_application(driver)
-    #     except:
-    #         pass
-    # finally:
-    #     driver.quit()
-
-    # Post-processing
-    clean_and_save_reports(base_path)
-    upload_parqet(download_path)
-
+    clean_save_upload_reports(download_path, cleaned_reports_path)
+    print("All tasks completed successfully.")
+    return True
 
 if __name__ == "__main__":
+    #script start time
+    process_started_at = datetime.now()
+    print(f"Script started at: {process_started_at.strftime('%Y-%m-%d %H:%M:%S')}")
     main()
+    process_ended_at = datetime.now()
+    print(f"Script ended at: {process_ended_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Total execution time: {process_ended_at - process_started_at}")
