@@ -3,3 +3,4 @@ output/
 logs/
 tests/
 downloads/
+__pycache__/

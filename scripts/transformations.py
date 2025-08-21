@@ -34,7 +34,7 @@ def clean_save_upload_reports(folder_path, cleaned_reports_path):
         
         # Step 2: Read the CSV skipping the first row
         try:
-            df = pd.read_csv(file_path, skiprows=1)
+            df = pd.read_csv(file_path, low_memory=False, dtype=str,skiprows=1)
         except Exception as e:
             print(f"Error reading CSV content from {filename}: {e}")
             continue
@@ -54,8 +54,8 @@ def clean_save_upload_reports(folder_path, cleaned_reports_path):
     # Step 5: save cleaned reports
     #merge individual reports into one claims report & save copy in local& upload to blob 
     merged_claims_df = pd.concat(claims_df_list, ignore_index=True)
-    for col in merged_claims_df.select_dtypes(include='object').columns:
-        merged_claims_df[col] = merged_claims_df[col].astype(str)
+    # for col in merged_claims_df.select_dtypes(include='object').columns:
+    #     merged_claims_df[col] = merged_claims_df[col].astype(str)
     merged_claims_df.to_parquet(os.path.join(cleaned_reports_path,'full_data_claims.parquet'), index=False)
     upload_to_azure_blob(os.path.join(cleaned_reports_path,'full_data_claims.parquet'), 
                          container_name="uipath", folder_name="AthenaOne/fwh_arz")
